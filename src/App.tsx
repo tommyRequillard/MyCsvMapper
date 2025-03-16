@@ -1,45 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { parse as parseOfx } from 'ofx-js';
 import * as XLSX from 'xlsx';
+import ColumnMapper from './component/ColumnMapper';
 
 // Types pour les données CSV
 interface CSVData {
-  Date?: string;
-  Description?: string;
-  Amount?: string;
-  DTPOSTED?: string;
-  MEMO?: string;
-  TRNAMT?: string;
-  [key: string]: string | undefined; // Permet des colonnes supplémentaires
+  [key: string]: string | undefined;
 }
 
-// Types pour les données mappées
-interface MappedData {
-  date: string;
-  description: string;
-  amount: string;
-}
+// Type pour les données mappées
+type MappedRow = Record<string, string>;
 
 const App: React.FC = () => {
-  const [data, setData] = useState<CSVData[]>([]); // Données brutes
-  const [mappedData, setMappedData] = useState<MappedData[]>([]); // Données mappées
-  const [fileName, setFileName] = useState<string>(''); // Nom du fichier
-  const [error, setError] = useState<string>(''); // Message d'erreur
+  const [data, setData] = useState<CSVData[]>([]);
+  const [mappedData, setMappedData] = useState<MappedRow[]>([]);
+  const [fileName, setFileName] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const mappedDataRef = useRef<HTMLDivElement>(null); // Référence pour le tableau des données mappées
+
+  // Fonction de reset
+  const resetFields = () => {
+    setData([]);
+    setMappedData([]);
+    setFileName('');
+    setError('');
+  };
 
   // Gestion de l'import de fichier
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setFileName(file.name); // Stocke le nom du fichier
-      setError(''); // Réinitialise l'erreur
+      resetFields(); // Réinitialise les champs
+      setFileName(file.name);
+      setError('');
       const reader = new FileReader();
       reader.onload = async (e) => {
         const text = e.target?.result as string | ArrayBuffer;
         try {
           let parsedData: CSVData[] = [];
-
-          // Gestion des formats de fichier
           if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
             parsedData = parseCsvFile(text as string);
           } else if (file.name.endsWith('.ofx')) {
@@ -56,18 +55,15 @@ const App: React.FC = () => {
           } else {
             throw new Error('Unsupported file type');
           }
-
           if (parsedData.length === 0) {
             throw new Error('No data found in the file');
           }
-
           setData(parsedData);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Failed to parse file');
           setData([]);
         }
       };
-
       if (file.type.includes('text') || file.name.endsWith('.json') || file.name.endsWith('.xml')) {
         reader.readAsText(file);
       } else {
@@ -76,21 +72,37 @@ const App: React.FC = () => {
     }
   };
 
+  // Fonction pour valider le mapping
+  const handleMappingComplete = (mapping: Record<string, string>) => {
+    console.log('Mapping configuré :', mapping);
+    const newData = data.map((item) => {
+      const mappedRow: MappedRow = {};
+      for (const customColumn in mapping) {
+        mappedRow[customColumn] = item[mapping[customColumn]] || '';
+      }
+      return mappedRow;
+    });
+    setMappedData(newData);
+
+    // Scroll vers le tableau des données mappées
+    if (mappedDataRef.current) {
+      mappedDataRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   // Parser pour les fichiers CSV
   const parseCsvFile = (text: string): CSVData[] => {
     const result = Papa.parse<CSVData>(text, {
-      header: true, // Utilise la première ligne comme en-têtes
-      skipEmptyLines: true, // Ignore les lignes vides
-      delimiter: ',', // Séparateur personnalisé
-      quoteChar: '"', // Caractère de guillemet
-      dynamicTyping: true, // Convertit automatiquement les nombres
+      header: true,
+      skipEmptyLines: true,
+      delimiter: ',',
+      quoteChar: '"',
+      dynamicTyping: true,
     });
-  
     if (result.errors.length > 0) {
-      console.error('CSV parsing errors:', result.errors); // Affiche les erreurs de parsing
+      console.error('CSV parsing errors:', result.errors);
       throw new Error('Invalid CSV format');
     }
-  
     return result.data;
   };
 
@@ -120,7 +132,7 @@ const App: React.FC = () => {
   const parseXmlFile = (text: string): CSVData[] => {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(text, 'text/xml');
-    const rows = xmlDoc.getElementsByTagName('row'); // Exemple de structure XML
+    const rows = xmlDoc.getElementsByTagName('row');
     if (rows.length === 0) {
       throw new Error('Invalid XML format');
     }
@@ -140,16 +152,6 @@ const App: React.FC = () => {
     const worksheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
     return jsonData as CSVData[];
-  };
-
-  // Mappage des données
-  const mapData = () => {
-    const newData: MappedData[] = data.map((item) => ({
-      date: item.DTPOSTED || item.Date || '',
-      description: item.MEMO || item.Description || '',
-      amount: item.TRNAMT || item.Amount || '',
-    }));
-    setMappedData(newData);
   };
 
   // Export des données en CSV
@@ -183,10 +185,19 @@ const App: React.FC = () => {
         {error && <p className="text-red-500 text-center">{error}</p>}
       </div>
 
-      {/* Prévisualisation des données brutes */}
+      {/* Configuration du mapping des colonnes */}
+      {data.length > 0 && (
+        <ColumnMapper
+          csvColumns={Object.keys(data[0])}
+          onMappingComplete={handleMappingComplete}
+          resetTrigger={data.length > 0 && mappedData.length === 0} // Déclenche une réinitialisation
+        />
+      )}
+
+      {/* Prévisualisation des 10 premières lignes des données brutes */}
       {data.length > 0 && (
         <div className="mt-4">
-          <h2 className="text-xl font-bold mb-2">Raw Data Preview</h2>
+          <h2 className="text-xl font-bold mb-2">Aperçu des 10 premières lignes (Données brutes)</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-300">
               <thead>
@@ -197,7 +208,7 @@ const App: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {data.map((row, index) => (
+                {data.slice(0, 10).map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     {Object.values(row).map((value, i) => (
                       <td key={i} className="p-2 border border-gray-300">{value}</td>
@@ -210,15 +221,8 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Boutons pour mapper et exporter les données */}
+      {/* Bouton pour exporter les données */}
       <div className="flex gap-4 my-4">
-        <button
-          onClick={mapData}
-          disabled={data.length === 0}
-          className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-blue-300"
-        >
-          Map Data
-        </button>
         <button
           onClick={exportToCSV}
           disabled={mappedData.length === 0}
@@ -228,25 +232,29 @@ const App: React.FC = () => {
         </button>
       </div>
 
-      {/* Affichage des données mappées */}
+      {/* Affichage des 10 premières lignes des données mappées */}
       {mappedData.length > 0 && (
-        <div className="mt-4">
-          <h2 className="text-xl font-bold mb-2">Mapped Data</h2>
+        <div ref={mappedDataRef}>
+          <h2 className="text-xl font-bold mb-2">Aperçu des 10 premières lignes (Données mappées)</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-300">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="p-2 border border-gray-300">Date</th>
-                  <th className="p-2 border border-gray-300">Description</th>
-                  <th className="p-2 border border-gray-300">Amount</th>
+                  {Object.keys(mappedData[0]).map((column) => (
+                    <th key={column} className="p-2 border border-gray-300">
+                      {column}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {mappedData.map((row, index) => (
+                {mappedData.slice(0, 10).map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50">
-                    <td className="p-2 border border-gray-300">{row.date}</td>
-                    <td className="p-2 border border-gray-300">{row.description}</td>
-                    <td className="p-2 border border-gray-300">{row.amount}</td>
+                    {Object.values(row).map((value, i) => (
+                      <td key={i} className="p-2 border border-gray-300">
+                        {value}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
