@@ -1,13 +1,17 @@
 {
   "name": "my-csv-mapper",
-  "private": true,
+  "homepage": "https://tommyrequillard.github.io/MyCsvMapper/",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "tsc": "tsc",
+    "build": "vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.14",
