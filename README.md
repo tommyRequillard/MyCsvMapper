@@ -18,20 +18,21 @@ Clonez ce dépôt :
 git clone https://github.com/votre-username/csv-importer-app.git
 
 Accédez au dossier du projet :
-cd csv-importer-app
+```cd csv-importer-app```
 
 Installez les dépendances :
-npm install
+```npm install```
 
 Lancez l'application :
-npm start
+```npm start```
 
 Ouvrez votre navigateur et accédez à http://localhost:3000.
 ## 🖥️ Utilisation
 Cliquez sur le bouton "Import File" pour sélectionner un fichier CSV.
 Une fois le fichier importé, les données seront affichées dans un tableau.
 Si le fichier CSV est mal formaté, un message d'erreur sera affiché.
-📁 Structure du projet
+### 📁 Structure du projet
+``` 
 csv-importer-app/
 ├── src/
 │   ├── App.tsx          # Composant principal de l'application
@@ -41,12 +42,13 @@ csv-importer-app/
 ├── public/              # Fichiers publics (HTML, etc.)
 ├── package.json         # Dépendances et scripts
 ├── tsconfig.json        # Configuration TypeScript
-└── README.md            # Documentation du projet
+└── README.md            # Documentation du projet 
+``` 
 
 ## 🧪 Tests
 Pour exécuter les tests, utilisez la commande suivante :
 
-npm test
+```npm test```
 
 ## 📄 Licence
 Ce projet est sous licence MIT. Pour plus d'informations, consultez le fichier LICENSE.
