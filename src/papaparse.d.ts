@@ -5,5 +5,4 @@ declare module "papaparse" {
         meta: any;
     }
     export function parse<T>(input: string, options?: any): ParseResult<T>;
-    // Ajoutez d'autres méthodes ou types nécessaires ici
-}
+    export function unparse(data: any[], options?: any): string; // Ajout de la méthode unparse

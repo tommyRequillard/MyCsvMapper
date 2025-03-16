@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.tsx","./src/component/columnmapper.tsx"],"errors":true,"version":"5.7.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/ofx-js.d.ts","./src/papaparse.d.ts","./src/vite-env.d.tsx","./src/component/columnmapper.tsx"],"errors":true,"version":"5.7.3"}
