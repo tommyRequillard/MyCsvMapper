@@ -1,54 +1,60 @@
-# React + TypeScript + Vite
+# CSV Importer App
+## 📝 Description
+Cette application React permet d'importer et de parser des fichiers CSV. Elle affiche les données brutes dans un tableau et gère les erreurs de format. Elle est conçue pour être simple et efficace, avec une interface utilisateur intuitive.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🚀 Fonctionnalités
+Importation de fichiers CSV.
+Parsing des données CSV avec gestion des erreurs.
+Affichage des données dans un tableau interactif.
+Prise en charge des fichiers avec des en-têtes personnalisés.
+Gestion des erreurs de format CSV.
+### 🔧 Technologies utilisées
+React : Bibliothèque JavaScript pour la construction d'interfaces utilisateur.
+PapaParse : Bibliothèque pour parser des fichiers CSV en JavaScript.
+TypeScript : Ajoute la typage statique pour améliorer la qualité du code.
+Tailwind CSS : Framework CSS pour le style de l'interface utilisateur.
+### 🛠️ Installation
+Clonez ce dépôt :
+git clone https://github.com/votre-username/csv-importer-app.git
 
-Currently, two official plugins are available:
+Accédez au dossier du projet :
+cd csv-importer-app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Installez les dépendances :
+npm install
 
-## Expanding the ESLint configuration
+Lancez l'application :
+npm start
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Ouvrez votre navigateur et accédez à http://localhost:3000.
+## 🖥️ Utilisation
+Cliquez sur le bouton "Import File" pour sélectionner un fichier CSV.
+Une fois le fichier importé, les données seront affichées dans un tableau.
+Si le fichier CSV est mal formaté, un message d'erreur sera affiché.
+📁 Structure du projet
+csv-importer-app/
+├── src/
+│   ├── App.tsx          # Composant principal de l'application
+│   ├── index.tsx        # Point d'entrée de l'application
+│   ├── types.ts         # Types TypeScript pour les données
+│   └── assets/          # Dossier pour les ressources statiques
+├── public/              # Fichiers publics (HTML, etc.)
+├── package.json         # Dépendances et scripts
+├── tsconfig.json        # Configuration TypeScript
+└── README.md            # Documentation du projet
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## 🧪 Tests
+Pour exécuter les tests, utilisez la commande suivante :
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+npm test
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 📄 Licence
+Ce projet est sous licence MIT. Pour plus d'informations, consultez le fichier LICENSE.
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## 📧 Contact
+Si vous avez des questions ou des suggestions, n'hésitez pas à me contacter :
+
+Email : tommy@aloa-informatique.com
+GitHub : @tommyRequillard
+🙏 Remerciements
+Merci d'avoir utilisé cette application ! N'hésitez pas à contribuer si vous souhaitez l'améliorer.
