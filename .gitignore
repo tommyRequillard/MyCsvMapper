@@ -12,5 +12,4 @@
 *.sln
 *.sw?
 node_modules
-dist
 *.local
