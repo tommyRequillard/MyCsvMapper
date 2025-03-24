@@ -1,15 +1,12 @@
 import React, { useState, useRef } from 'react';
 import Papa from 'papaparse';
-import { parse as parseOfx } from 'ofx-js';
 import * as XLSX from 'xlsx';
-import ColumnMapper from './component/ColumnMapper';
+import ColumnMapper from './components/ColumnMapper';
 
-// Types pour les données CSV
 interface CSVData {
   [key: string]: string | undefined;
 }
 
-// Type pour les données mappées
 type MappedRow = Record<string, string>;
 
 const App: React.FC = () => {
@@ -17,9 +14,8 @@ const App: React.FC = () => {
   const [mappedData, setMappedData] = useState<MappedRow[]>([]);
   const [fileName, setFileName] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const mappedDataRef = useRef<HTMLDivElement>(null); // Référence pour le tableau des données mappées
+  const mappedDataRef = useRef<HTMLDivElement>(null);
 
-  // Fonction de reset
   const resetFields = () => {
     setData([]);
     setMappedData([]);
@@ -27,70 +23,57 @@ const App: React.FC = () => {
     setError('');
   };
 
-  // Gestion de l'import de fichier
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      resetFields(); // Réinitialise les champs
-      setFileName(file.name);
-      setError('');
-      const reader = new FileReader();
-      reader.onload = async (e) => {
+    if (!file) return;
+  
+    resetFields();
+    setFileName(file.name);
+    setError('');
+  
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
         const text = e.target?.result as string | ArrayBuffer;
-        try {
-          let parsedData: CSVData[] = [];
-          if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
-            parsedData = parseCsvFile(text as string);
-          } else if (file.name.endsWith('.ofx')) {
-            parsedData = await parseOfxFile(text as string);
-          } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
-            parsedData = parseJsonFile(text as string);
-          } else if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
-            parsedData = parseXmlFile(text as string);
-          } else if (
-            file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-            file.name.endsWith('.xlsx')
-          ) {
-            parsedData = await parseExcelFile(text as ArrayBuffer);
-          } else {
-            throw new Error('Unsupported file type');
-          }
-          if (parsedData.length === 0) {
-            throw new Error('No data found in the file');
-          }
-          setData(parsedData);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to parse file');
-          setData([]);
+  
+        let parsedData: CSVData[] = [];
+        if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+          parsedData = parseCsvFile(text as string);
+        } else if (file.name.endsWith('.ofx')) {
+          parsedData = await parseOfxFile(text); // Utiliser le parser personnalisé
+        } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+          parsedData = parseJsonFile(text as string);
+        } else if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
+          parsedData = parseXmlFile(text as string);
+        } else if (
+          file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.name.endsWith('.xlsx')
+        ) {
+          parsedData = await parseExcelFile(text as ArrayBuffer);
+        } else {
+          throw new Error('Type de fichier non supporté');
         }
-      };
-      if (file.type.includes('text') || file.name.endsWith('.json') || file.name.endsWith('.xml')) {
-        reader.readAsText(file);
-      } else {
-        reader.readAsArrayBuffer(file);
+  
+        if (parsedData.length === 0) {
+          throw new Error('Aucune donnée trouvée dans le fichier');
+        }
+  
+        setData(parsedData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur lors de l\'import du fichier');
+        setData([]);
       }
+    };
+  
+    // Toujours lire le fichier en texte brut pour les formats OFX
+    if (file.name.endsWith('.ofx') || file.type.includes('text') || file.name.endsWith('.json') || file.name.endsWith('.xml')) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsArrayBuffer(file); // Pour Excel et autres formats binaires
     }
   };
+  
 
-  // Fonction pour valider le mapping
-  const handleMappingComplete = (mapping: Record<string, string>) => {
-    console.log('Mapping configuré :', mapping);
-    const newData = data.map((item) => {
-      const mappedRow: MappedRow = {};
-      for (const customColumn in mapping) {
-        mappedRow[customColumn] = item[mapping[customColumn]] || '';
-      }
-      return mappedRow;
-    });
-    setMappedData(newData);
-
-    // Scroll vers le tableau des données mappées
-    if (mappedDataRef.current) {
-      mappedDataRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  // Parser pour les fichiers CSV
   const parseCsvFile = (text: string): CSVData[] => {
     const result = Papa.parse<CSVData>(text, {
       header: true,
@@ -100,41 +83,87 @@ const App: React.FC = () => {
       dynamicTyping: true,
     });
     if (result.errors.length > 0) {
-      console.error('CSV parsing errors:', result.errors);
-      throw new Error('Invalid CSV format');
+      console.error('Erreurs lors de l\'analyse CSV :', result.errors);
+      throw new Error('Format CSV invalide');
     }
     return result.data;
   };
 
-  // Parser pour les fichiers OFX
-  const parseOfxFile = async (text: string): Promise<CSVData[]> => {
-    const ofxData = await parseOfx(text);
-    if (!ofxData.OFX?.BANKMSGSRSV1?.STMTTRNRS?.STMTRS?.BANKTRANLIST?.STMTTRN) {
-      throw new Error('Invalid OFX format');
+  const parseOfxFile = async (fileContent: string | ArrayBuffer): Promise<CSVData[]> => {
+    try {
+      // Convertir le fichier en texte brut si nécessaire
+      const text = fileContent instanceof ArrayBuffer ? new TextDecoder().decode(fileContent) : fileContent;
+  
+      // Convertir SGML en XML si nécessaire
+      const xmlText = isXml(text) ? text : convertSgmlToXml(text);
+  
+      // Extraire les transactions du fichier OFX
+      const transactions = extractOfxTransactions(xmlText);
+      if (transactions.length === 0) {
+        throw new Error('Aucune transaction trouvée dans le fichier OFX');
+      }
+  
+      // Convertir les transactions en tableau d'objets
+      return transactions.map((transaction) => ({
+        Date: transaction.DTPOSTED || '',
+        Type: transaction.TRNTYPE || '',
+        Amount: transaction.TRNAMT || '',
+        Description: transaction.NAME || '',
+        ID: transaction.FITID || '',
+      }));
+    } catch (err) {
+      throw new Error('Erreur lors du parsing du fichier OFX : ' + (err instanceof Error ? err.message : 'Format invalide'));
     }
-    return ofxData.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN;
+  };
+  
+  const extractOfxTransactions = (xmlText: string): Array<Record<string, string>> => {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+  
+    // Trouver les transactions
+    const transactions = xmlDoc.getElementsByTagName('STMTTRN');
+    if (transactions.length === 0) {
+      throw new Error('Aucune transaction trouvée dans le fichier OFX');
+    }
+  
+    // Convertir les transactions en tableau d'objets
+    return Array.from(transactions).map((transaction) => {
+      const obj: Record<string, string> = {};
+      Array.from(transaction.children).forEach((child) => {
+        obj[child.tagName] = child.textContent || '';
+      });
+      return obj;
+    });
+  };
+  
+  // Vérifier si le texte est déjà en XML
+  const isXml = (text: string): boolean => /<\w+>[^<]+<\/\w+>/.test(text);
+  
+  // Convertir SGML en XML
+  const convertSgmlToXml = (text: string): string => {
+    return text
+      .replace(/(<\w+>)([^<]+)/g, '$1$2</$1>') // Fermer les balises
+      .replace(/<\/\w+>/g, '$&'); // Supprimer les doublons
   };
 
-  // Parser pour les fichiers JSON
   const parseJsonFile = (text: string): CSVData[] => {
     try {
       const jsonData = JSON.parse(text);
       if (!Array.isArray(jsonData)) {
-        throw new Error('JSON file must contain an array of objects');
+        throw new Error('Le fichier JSON doit contenir un tableau d\'objets');
       }
       return jsonData;
     } catch (err) {
-      throw new Error('Invalid JSON format');
+      throw new Error('Format JSON invalide');
     }
   };
 
-  // Parser pour les fichiers XML
   const parseXmlFile = (text: string): CSVData[] => {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(text, 'text/xml');
     const rows = xmlDoc.getElementsByTagName('row');
     if (rows.length === 0) {
-      throw new Error('Invalid XML format');
+      throw new Error('Format XML invalide');
     }
     return Array.from(rows).map((row) => {
       const obj: CSVData = {};
@@ -145,7 +174,6 @@ const App: React.FC = () => {
     });
   };
 
-  // Parser pour les fichiers Excel
   const parseExcelFile = async (buffer: ArrayBuffer): Promise<CSVData[]> => {
     const workbook = XLSX.read(buffer, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
@@ -154,7 +182,21 @@ const App: React.FC = () => {
     return jsonData as CSVData[];
   };
 
-  // Export des données en CSV
+  const handleMappingComplete = (mapping: Record<string, string>) => {
+    const newData = data.map((item) => {
+      const mappedRow: MappedRow = {};
+      for (const customColumn in mapping) {
+        mappedRow[customColumn] = item[mapping[customColumn]] || '';
+      }
+      return mappedRow;
+    });
+    setMappedData(newData);
+  
+    if (mappedDataRef.current) {
+      mappedDataRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const exportToCSV = () => {
     const csv = Papa.unparse(mappedData);
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -170,7 +212,6 @@ const App: React.FC = () => {
     <div className="p-4">
       <h1 className="text-3xl font-bold text-center text-blue-500">CSV Mapper</h1>
 
-      {/* Bouton pour importer un fichier */}
       <div className="flex flex-col gap-4 mb-4">
         <label className="bg-purple-500 text-white px-4 py-2 rounded text-center cursor-pointer">
           Import File
@@ -185,33 +226,27 @@ const App: React.FC = () => {
         {error && <p className="text-red-500 text-center">{error}</p>}
       </div>
 
-      {/* Configuration du mapping des colonnes */}
-      {data.length > 0 && (
-        <ColumnMapper
-          csvColumns={Object.keys(data[0])}
-          onMappingComplete={handleMappingComplete}
-          resetTrigger={data.length > 0 && mappedData.length === 0} // Déclenche une réinitialisation
-        />
-      )}
-
-      {/* Prévisualisation des 10 premières lignes des données brutes */}
       {data.length > 0 && (
         <div className="mt-4">
-          <h2 className="text-xl font-bold mb-2">Aperçu des 10 premières lignes (Données brutes)</h2>
+          <h2 className="text-xl font-bold mb-2">Aperçu des 3 premières lignes (Données brutes)</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-300">
               <thead>
                 <tr className="bg-gray-100">
                   {Object.keys(data[0]).map((key) => (
-                    <th key={key} className="p-2 border border-gray-300">{key}</th>
+                    <th key={key} className="p-2 border border-gray-300">
+                      {key}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {data.slice(0, 10).map((row, index) => (
+                {data.slice(0, 3).map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     {Object.values(row).map((value, i) => (
-                      <td key={i} className="p-2 border border-gray-300">{value}</td>
+                      <td key={i} className="p-2 border border-gray-300">
+                        {value}
+                      </td>
                     ))}
                   </tr>
                 ))}
@@ -221,21 +256,17 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Bouton pour exporter les données */}
-      <div className="flex gap-4 my-4">
-        <button
-          onClick={exportToCSV}
-          disabled={mappedData.length === 0}
-          className="bg-green-500 text-white px-4 py-2 rounded disabled:bg-green-300"
-        >
-          Export to CSV
-        </button>
-      </div>
+      {data.length > 0 && (
+        <ColumnMapper
+          csvColumns={Object.keys(data[0])}
+          onMappingComplete={handleMappingComplete}
+          resetTrigger={data.length > 0 && mappedData.length === 0}
+        />
+      )}
 
-      {/* Affichage des 10 premières lignes des données mappées */}
       {mappedData.length > 0 && (
         <div ref={mappedDataRef}>
-          <h2 className="text-xl font-bold mb-2">Aperçu des 10 premières lignes (Données mappées)</h2>
+          <h2 className="text-xl font-bold mb-2">Aperçu des 3 premières lignes (Données mappées)</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-300">
               <thead>
@@ -248,7 +279,7 @@ const App: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {mappedData.slice(0, 10).map((row, index) => (
+                {mappedData.slice(0,3).map((row, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     {Object.values(row).map((value, i) => (
                       <td key={i} className="p-2 border border-gray-300">
