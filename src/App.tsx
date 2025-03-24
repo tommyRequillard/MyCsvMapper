@@ -5,6 +5,7 @@ import ColumnMapper from './components/ColumnMapper';
 import MappedDataPreview from './components/MappedDataPreview';
 import { parseCsvFile, parseOfxFile, parseJsonFile, parseXmlFile, parseExcelFile } from './utils/Parser';
 
+
 const App: React.FC = () => {
   const [data, setData] = useState<Record<string, string | undefined>[]>([]);
   const [mappedData, setMappedData] = useState<Record<string, string>[]>([]);
@@ -16,34 +17,50 @@ const App: React.FC = () => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const text = e.target?.result as string | ArrayBuffer;
+        const result = e.target?.result;
+        if (!result) throw new Error('Aucun contenu trouvé dans le fichier.');
+  
         let parsedData: Record<string, string | undefined>[] = [];
-
+  
+        // Gérer les fichiers CSV
         if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
-          parsedData = parseCsvFile(text as string);
-        } else if (file.name.endsWith('.ofx')) {
-          parsedData = await parseOfxFile(text as string);
-        } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
-          parsedData = parseJsonFile(text as string);
-        } else if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
-          parsedData = parseXmlFile(text as string);
-        } else if (
+          parsedData = parseCsvFile(result as string);
+        }
+        // Gérer les fichiers OFX
+        else if (file.name.endsWith('.ofx')) {
+          parsedData = await parseOfxFile(result as string);
+        }
+        // Gérer les fichiers JSON
+        else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+          parsedData = parseJsonFile(result as string);
+        }
+        // Gérer les fichiers XML
+        else if (file.type === 'text/xml' || file.name.endsWith('.xml')) {
+          parsedData = parseXmlFile(result as string);
+        }
+        // Gérer les fichiers Excel
+        else if (
           file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
           file.name.endsWith('.xlsx')
         ) {
-          parsedData = await parseExcelFile(text as ArrayBuffer);
+          parsedData = await parseExcelFile(result as ArrayBuffer);
+        } else {
+          throw new Error('Format de fichier non supporté');
         }
-
+  
+        // Mettre à jour l'état avec les données parsées
         setData(parsedData);
         setFileName(file.name);
         setError('');
       } catch (err) {
+        console.error('Erreur lors de l\'import du fichier :', err);
         setError(err instanceof Error ? err.message : 'Erreur lors de l\'import du fichier');
       }
     };
-
-    if (file.name.endsWith('.ofx') || file.type.includes('text') || file.name.endsWith('.json') || file.name.endsWith('.xml')) {
-      reader.readAsText(file);
+  
+    // Lire le fichier en fonction de son format
+    if (file.name.endsWith('.ofx') || file.type.includes('text')) {
+      reader.readAsText(file, 'UTF-8');
     } else {
       reader.readAsArrayBuffer(file);
     }
