@@ -2,7 +2,7 @@
 *.log
 
 # Editor directories and files
-/dist
+dist
 .vscode/*
 !.vscode/extensions.json
 .idea
