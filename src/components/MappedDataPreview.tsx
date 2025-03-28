@@ -1,5 +1,6 @@
 import React from 'react';
 import Papa from 'papaparse';
+import { downloadOFX } from '../utils/OfxExporter';
 
 interface MappedDataPreviewProps {
     mappedData: Record<string, string>[];
@@ -16,11 +17,15 @@ const MappedDataPreview: React.FC<MappedDataPreviewProps> = ({ mappedData }) => 
         URL.revokeObjectURL(link.href);
     };
 
+    const handleExportToOfx = () => {
+        downloadOFX(mappedData);
+    };
+
     if (mappedData.length === 0) return null;
 
     return (
         <div className="mt-4">
-            <h2 className="text-xl font-bold mb-2">Aperçu des 5ère lignes de données Mappées</h2>
+            <h2 className="text-xl font-bold mb-2">Aperçu des 5 premières lignes de données Mappées</h2>
             <div className="overflow-x-auto">
                 <table className="min-w-full bg-white border border-gray-300">
                     <thead>
@@ -45,12 +50,21 @@ const MappedDataPreview: React.FC<MappedDataPreviewProps> = ({ mappedData }) => 
                     </tbody>
                 </table>
             </div>
-            <button
-                className="bg-green-500 text-white px-4 py-2 rounded mt-4"
-                onClick={handleExportToCsv}
-            >
-                Exporter en CSV
-            </button>
+            {/* Boutons d'export */}
+            <div className="flex gap-4 mt-4">
+                <button
+                    className="bg-green-500 text-white px-4 py-2 rounded"
+                    onClick={handleExportToCsv}
+                >
+                    Exporter en CSV
+                </button>
+                <button
+                    className="bg-purple-500 text-white px-4 py-2 rounded"
+                    onClick={handleExportToOfx}
+                >
+                    Exporter en OFX
+                </button>
+            </div>
         </div>
     );
 };
