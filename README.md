@@ -24,25 +24,44 @@ Installez les dépendances :
 ```npm install```
 
 Lancez l'application :
-```npm start```
+```npm run dev```
+
+Buildez l'application :
+```npm run build```
+
+Deployez sur github.io apres avoir modifié le lieux de stockage sur le package.json
+```npm run deploy```
+
 
 Ouvrez votre navigateur et accédez à http://localhost:3000.
 ## 🖥️ Utilisation
 Cliquez sur le bouton "Import File" pour sélectionner un fichier CSV.
 Une fois le fichier importé, les données seront affichées dans un tableau.
 Si le fichier CSV est mal formaté, un message d'erreur sera affiché.
+
 ### 📁 Structure du projet
 ``` 
 csv-importer-app/
 ├── src/
-│   ├── App.tsx          # Composant principal de l'application
-│   ├── index.tsx        # Point d'entrée de l'application
-│   ├── types.ts         # Types TypeScript pour les données
-│   └── assets/          # Dossier pour les ressources statiques
-├── public/              # Fichiers publics (HTML, etc.)
-├── package.json         # Dépendances et scripts
-├── tsconfig.json        # Configuration TypeScript
-└── README.md            # Documentation du projet 
+│   ├── Main.tsx                # Composant d'integration HTML de l'application
+│   ├── App.tsx                 # Composant principal de l'application
+│   ├── App.css                 # Composant principal du style de l'application
+│   ├── index.tsx               # Point d'entrée de l'application
+│   ├── index.css               # Point d'entrée du style de l'application
+│   ├── types.ts                # Types TypeScript pour les données
+│   ├── assets/                 # Dossier pour les ressources statiques
+│   └── components/
+│       └── ColumnMapper.tsx/
+│       └── DataPreview.tsx/
+│       └── FileUpLoader.tsx/
+│       └── MappedDataPreview.tsx/
+│   └── utils/
+│       └── OfxExporter.tsx/
+│       └── Parser.tsx/
+├── public/                     # Fichiers publics (HTML, etc.)
+├── package.json                # Dépendances et scripts
+├── tsconfig.json               # Configuration TypeScript
+└── README.md                   # Documentation du projet 
 ``` 
 
 ## 🧪 Tests
